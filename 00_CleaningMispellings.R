@@ -41,5 +41,6 @@ speciesNamesResolve_all <- gnr_resolve(names = allSpecies$EditedName[45:length(a
 speciesNamesResolve_45100 <- as.data.table(speciesNamesResolve_45100)
 
 
+
 # Names that were merged
 allSpecies[,.(Count=.N,NamesToMerge=toString(unique(TaxonName[TaxonName!=EditedName]))),by="EditedName"][Count>1]
