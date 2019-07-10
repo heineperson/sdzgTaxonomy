@@ -34,13 +34,33 @@ allSpecies[,EditedName:=gsub(" va "," var. ",EditedName,fixed=T)]
 allSpecies[grepl("  ",TaxonName)]
 allSpecies[,EditedName:=gsub("  "," ",EditedName,fixed=T)]
 
+# Fixing discrepancy in quotation marks
+allSpecies[,EditedName:=gsub("\"", "\'",EditedName)]
+allSpecies[,EditedName:=gsub("\''", "\'",EditedName)]
 
-# Finding ITIS Names
-speciesNamesResolve_all <- gnr_resolve(names = allSpecies$EditedName[45:length(allSpecies$EditedName)],best_match_only = TRUE,preferred_data_sources = c(3), canonical = TRUE)
 
-speciesNamesResolve_45100 <- as.data.table(speciesNamesResolve_45100)
-
+# Indicating the fix
+allSpecies[,nameChangeReason:=ifelse(EditedName!=TaxonName, "Spelling Standardization","No Change")]
 
 
 # Names that were merged
 allSpecies[,.(Count=.N,NamesToMerge=toString(unique(TaxonName[TaxonName!=EditedName]))),by="EditedName"][Count>1]
+
+# Finding ITIS Names
+speciesNamesResolve_all <- gnr_resolve(names = allSpecies$EditedName[45:length(allSpecies$EditedName)],best_match_only = TRUE,preferred_data_sources = c(3,4), canonical = TRUE)
+speciesNamesResolve_all <- as.data.table(speciesNamesResolve_all)
+
+# Select names for update that have a lower matching score but have multiple words
+PotentialResolutions <- speciesNamesResolve_all[score < 0.98 & str_count(matched_name2," ")>=1 & !grepl("\'", user_supplied_name)]
+setkey(PotentialResolutions,user_supplied_name)
+setkey(allSpecies, EditedName)
+allSpecies[PotentialResolutions,`:=` (EditedName=i.matched_name2,nameChangeReason="Fuzzy Match ITIS or NCBI" )]
+
+# Defining what changes to show peopel first
+SpeciesChangeSummary <- allSpecies[,.(Count=.N,NamesToMerge=toString(unique(TaxonName[TaxonName!=EditedName])), nameChangeReason=toString(unique(nameChangeReason))),by="EditedName"]
+SpeciesChangeSummary <- SpeciesChangeSummary[Count>2 | nameChangeReason!="No Change" ]
+SpeciesChangeSummary[,ActionNeeded:=ifelse(Count>1, "Merge Taxa with Existing Correct Name","Change Spelling of Original Name")]
+
+SpeciesChangeSummary <- SpeciesChangeSummary[,.(OriginalName=NamesToMerge, PotentialCorrectedName=EditedName,ActionNeeded)][order(-ActionNeeded)]
+
+write.csv(SpeciesChangeSummary,"Data/SpeciesChangeSummary_Jul2019.csv")
