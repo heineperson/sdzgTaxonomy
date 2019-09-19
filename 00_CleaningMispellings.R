@@ -6,7 +6,7 @@ library(taxize)
 
 # Loading Data
 ## This is the ExpTax02 output from IrisBG - I believe it includes all species even if they are deaccessioned or dead
-allSpecies <- fread("Data/SDZGSpeciesList_LivingandDead.csv")
+allSpecies <- fread("Data/SDZGTaxonListSep2019.csv")
 
 
 # Give each species a unique ID
@@ -63,4 +63,4 @@ SpeciesChangeSummary[,ActionNeeded:=ifelse(Count>1, "Merge Taxa with Existing Co
 
 SpeciesChangeSummary <- SpeciesChangeSummary[,.(OriginalName=NamesToMerge, PotentialCorrectedName=EditedName,ActionNeeded)][order(-ActionNeeded)]
 
-write.csv(SpeciesChangeSummary,"Data/SpeciesChangeSummary_Jul2019.csv")
+write.csv(SpeciesChangeSummary,"Data/SpeciesChangeSummary_Sep2019.csv")
